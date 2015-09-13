@@ -1,0 +1,32 @@
+{
+    "auth_users": [
+        {
+            "login": "jack",
+            "pass": "12345"
+        }
+    ],
+    "sites": [
+        {
+            "default": true,
+            "name": "default_page",
+            "port": 8020
+        },
+        {
+            "host": "blog.site.com",
+            "name": "blog",
+            "port": 8021
+        },
+        {
+            "auth": true,
+            "host": "api.site.com",
+            "name": "api",
+            "port": 8022
+        },
+        {
+            "host": "dev-api.another.com",
+            "name": "dev_api",
+            "port": 8022,
+            "remote": "192.168.1.3"
+        }
+    ]
+}
