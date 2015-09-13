@@ -5,6 +5,9 @@
             "pass": "12345"
         }
     ],
+    "settings": {
+        "listen_port": 80
+    },
     "sites": [
         {
             "default": true,
@@ -20,7 +23,8 @@
             "auth": true,
             "host": "api.site.com",
             "name": "api",
-            "port": 8022
+            "port": 8022,
+            "realm": "MyAPI"
         },
         {
             "host": "dev-api.another.com",

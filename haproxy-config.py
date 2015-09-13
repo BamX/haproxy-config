@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 import json
 
-realm = "BamServer"
 authGroup = "UsersForAuth"
-listenPort = 80
 
 jsonFile = "haproxy.json"
 haproxyFile = "haproxy.cfg"
@@ -54,7 +52,7 @@ def formatFrontendLine(site):
     else:
         return formatUseFrontendLine(site["name"], site["host"])
 
-def formatFrontend(sites):
+def formatFrontend(listenPort, sites):
     return frontendTemplate % (listenPort, ''.join(map(formatFrontendLine, sites)))
 
 #########
@@ -70,26 +68,38 @@ def formatAuthUsers(users):
 def formatCookies(name):
     return cookieTemplate % name
 
-def formatAuth(name):
-    return authTemplate % (authGroup, name)
+def formatAuth(realm):
+    return authTemplate % (authGroup, realm)
 
 def formatBackendLine(site):
     name = site["name"]
     remote = "localhost"
     if "remote" in site:
         remote = site["remote"]
+    realm = "MyServer"
+    if "realm" in site:
+        realm = site["realm"]
     port = site["port"]
     cookies = (not "cookies" in site) or site["cookies"]
     auth = ("auth" in site) and site["auth"]
-    return backendTemplate % (name, ("", formatAuth(name))[auth], ("", formatCookies(name))[cookies], name, remote, port, ("", " cookie %s_server" % name)[cookies])
+    return backendTemplate % (name, ("", formatAuth(realm))[auth], ("", formatCookies(name))[cookies], name, remote, port, ("", " cookie %s_server" % name)[cookies])
 
 def formatBackend(sites):
     return ''.join(map(formatBackendLine, sites))
 
 #########
 
+def parseSettings(data):
+    listenPort = 80
+    if "settings" in data:
+        settings = data["settings"]
+        if "listen_port" in settings:
+            listenPort = settings["listen_port"]
+    return listenPort
+
 def formatAll(data):
-    frontend = formatFrontend(data["sites"])
+    listenPort = parseSettings(data)
+    frontend = formatFrontend(listenPort, data["sites"])
     authUsers = ""
     if "auth_users" in data:
         authUsers = formatAuthUsers(data["auth_users"])
