@@ -1,8 +1,18 @@
 {
-    "auth_users": [
+    "auth_groups": [
         {
-            "login": "jack",
-            "pass": "12345"
+            "name": "home",
+            "users": [{
+                "login": "jack",
+                "pass": "12345"
+            }]
+        },
+        {
+            "name": "friends",
+            "users": [{
+                "login": "carl",
+                "pass": "54321"
+            }]
         }
     ],
     "settings": {
@@ -20,7 +30,7 @@
             "port": 8021
         },
         {
-            "auth": true,
+            "auth_group": "home",
             "host": "api.site.com",
             "name": "api",
             "port": 8022,

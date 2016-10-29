@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 import json
 
-authGroup = "UsersForAuth"
-
 jsonFile = "haproxy.json"
 haproxyFile = "haproxy.cfg"
 
@@ -20,7 +18,7 @@ acl is_{name} hdr_end(host) -i {host}
 use_backend {name}_web if is_{name}"""
 
 authUsersTemplate = """
-userlist {auth_group}{user_lines}"""
+userlist {auth_group}_group{user_lines}"""
 
 authUserTemplate = """
 user {login} insecure-password {password}"""
@@ -32,7 +30,7 @@ mode http{auth}{cookies}
 server {name}_server {remote}:{port} check{check_cookies}"""
 
 authTemplate = """
-acl is_auth_ok http_auth({auth_group})
+acl is_auth_ok http_auth({auth_group}_group)
 http-request auth realm {realm} if !is_auth_ok"""
 
 cookieTemplate = """
@@ -43,19 +41,20 @@ cookieCheckTemplate = " cookie {name}_server"
 #########
 
 
-def formatDefaultFrontendLine(name):
-    return defaultFrontendLineTemplate.format(name=name)
+def formatDefaultFrontendLine(site):
+    return defaultFrontendLineTemplate.format(name=site['name'])
 
 
-def formatUseFrontendLine(name, host):
-    return frontendLineTemplate.format(name=name, host=host)
+def formatUseFrontendLine(site):
+    return frontendLineTemplate.format(name=site['name'],
+                                       host=site['host'])
 
 
 def formatFrontendLine(site):
-    if ("default" in site) and site["default"]:
-        return formatDefaultFrontendLine(site["name"])
+    if site.get("default", False):
+        return formatDefaultFrontendLine(site)
     else:
-        return formatUseFrontendLine(site["name"], site["host"])
+        return formatUseFrontendLine(site)
 
 
 def formatFrontend(listenPort, sites):
@@ -66,33 +65,42 @@ def formatFrontend(listenPort, sites):
 #########
 
 
-def formatAuthUser(login, password):
-    return authUserTemplate.format(login=login, password=password)
+def formatAuthUser(user):
+    return authUserTemplate.format(login=user['login'],
+                                   password=user['pass'])
 
 
-def formatAuthUsers(users):
-    userLines = ''.join([formatAuthUser(u['login'], u['pass']) for u in users])
-    return authUsersTemplate.format(auth_group=authGroup, user_lines=userLines)
+def formatAuthGroup(group):
+    userLines = ''.join(map(formatAuthUser, group['users']))
+    return authUsersTemplate.format(auth_group=group['name'],
+                                    user_lines=userLines)
+
+
+def formatAuthGroups(groups):
+    if not groups or len(groups) == 0:
+        return ""
+    return '\n'.join(map(formatAuthGroup, groups))
 
 #########
 
 
-def formatCookies(has_cookies, name):
-    if has_cookies == False:
+def formatCookies(site):
+    if site.get("cookies", False) == False:
         return ""
-    return cookieTemplate.format(name=name)
+    return cookieTemplate.format(name=site['name'])
 
 
-def formatCheckCookies(has_cookies, name):
-    if has_cookies == False:
+def formatCheckCookies(site):
+    if site.get("cookies", False) == False:
         return ""
-    return cookieCheckTemplate.format(name=name)
+    return cookieCheckTemplate.format(name=site['name'])
 
 
-def formatAuth(has_auth, realm):
-    if has_auth == False:
+def formatAuth(site):
+    if site.get("auth_group", False) == False:
         return ""
-    return authTemplate.format(auth_group=authGroup, realm=realm)
+    return authTemplate.format(auth_group=site['auth_group'],
+                               realm=site['realm'])
 
 
 def formatBackendLine(site):
@@ -100,20 +108,12 @@ def formatBackendLine(site):
     remote = site.get("remote", "localhost")
     realm = site.get("realm", "MyServer")
     port = site["port"]
-
-    hasAuth = site.get("auth", False)
-    auth = formatAuth(hasAuth, realm)
-
-    hasCookies = site.get("cookies", False)
-    cookies = formatCookies(hasCookies, name)
-    checkCookies = formatCheckCookies(hasCookies, name)
-
     return backendTemplate.format(name=name,
                                   remote=remote,
                                   port=port,
-                                  auth=auth,
-                                  cookies=cookies,
-                                  check_cookies=checkCookies)
+                                  auth=formatAuth(site),
+                                  cookies=formatCookies(site),
+                                  check_cookies=formatCheckCookies(site))
 
 
 def formatBackend(sites):
@@ -132,22 +132,20 @@ def parseSettings(data):
 
 
 def validate(data):
-    if not "auth_users" in data:
-        auth_count = len([s for s in data["sites"] if s.get("auth", False)])
-        if auth_count > 0:
-            print "Add auth user(s)"
-            exit(1)
+    if not "auth_groups" in data:
+        for site in data["sites"]:
+            if site.get("auth_group", False):
+                print "Add auth user(s)"
+                exit(1)
 
 
 def formatAll(data):
     validate(data)
     listenPort = parseSettings(data)
     frontend = formatFrontend(listenPort, data["sites"])
-    authUsers = ""
-    if "auth_users" in data:
-        authUsers = formatAuthUsers(data["auth_users"])
+    auth = formatAuthGroups(data["auth_groups"])
     backend = formatBackend(data["sites"])
-    return ''.join([frontend, authUsers, backend]) + '\n'
+    return ''.join([frontend, auth, backend]) + '\n'
 
 with open(jsonFile) as dataFile:
     data = json.load(dataFile)

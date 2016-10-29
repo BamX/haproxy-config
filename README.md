@@ -6,12 +6,25 @@ Just run ```./haproxy-config.py```.
 Here an example of **haproxy.json**:
 
     {
-        "auth_users": [
+        "auth_groups": [
             {
-                "login": "jack",
-                "pass": "12345"
+                "name": "home",
+                "users": [{
+                    "login": "jack",
+                    "pass": "12345"
+                }]
+            },
+            {
+                "name": "friends",
+                "users": [{
+                    "login": "carl",
+                    "pass": "54321"
+                }]
             }
         ],
+        "settings": {
+            "listen_port": 80
+        },
         "sites": [
             {
                 "default": true,
@@ -24,10 +37,11 @@ Here an example of **haproxy.json**:
                 "port": 8021
             },
             {
-                "auth": true,
+                "auth_group": "home",
                 "host": "api.site.com",
                 "name": "api",
-                "port": 8022
+                "port": 8022,
+                "realm": "MyAPI"
             },
             {
                 "host": "dev-api.another.com",
@@ -37,11 +51,11 @@ Here an example of **haproxy.json**:
             }
         ]
     }
-    
+
 # License
 The MIT License (MIT)
 
-Copyright (c) 2015 Nikolay Volosatov
+Copyright (c) 2016 Nikolay Volosatov
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
