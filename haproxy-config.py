@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import json
 
+defaultRealm = "Welcome"
+
 jsonFile = "haproxy.json"
 haproxyFile = "haproxy.cfg"
 
@@ -100,7 +102,7 @@ def formatAuth(site):
     if site.get("auth_group", False) == False:
         return ""
     return authTemplate.format(auth_group=site['auth_group'],
-                               realm=site['realm'])
+                               realm=site.get('realm', defaultRealm))
 
 
 def formatBackendLine(site):
